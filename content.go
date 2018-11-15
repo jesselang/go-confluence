@@ -9,13 +9,13 @@ import (
 )
 
 type ContentAncestor struct {
-	Id string `json:"id"`
+	ID string `json:"id"`
 }
 
 type Content struct {
-	Id     string `json:"id"`
+	ID     string `json:"id,omitempty"`
 	Type   string `json:"type"`
-	Status string `json:"status"`
+	Status string `json:"status,omitempty"`
 	Title  string `json:"title"`
 	Body   struct {
 		Storage struct {
@@ -26,7 +26,10 @@ type Content struct {
 	Version struct {
 		Number int `json:"number"`
 	} `json:"version"`
-	Ancestors []ContentAncestor `json:"ancestors"`
+	Space struct {
+		Key string `json:"key"`
+	} `json:"space,omitempty"`
+	Ancestors []ContentAncestor `json:"ancestors,omitempty"`
 }
 
 type ChildResults struct {
@@ -93,7 +96,7 @@ func (w *Wiki) GetContent(contentID string, expand []string) (*Content, error) {
 }
 
 func (w *Wiki) UpdateContent(content *Content) (*Content, error) {
-	contentEndPoint, err := w.existingContentEndpoint(content.Id)
+	contentEndPoint, err := w.existingContentEndpoint(content.ID)
 	if err != nil {
 		return nil, err
 	}
