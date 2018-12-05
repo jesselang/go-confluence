@@ -3,15 +3,17 @@ package confluence
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
+// NOTE: The `_links.download` key is not documented in the Confluence REST API Reference. However,
+//       it is referenced here: https://community.atlassian.com/t5/Answers-Developer-Questions/confluence-pages-get-attached-files-via-REST-API/qaq-p/529873#M67529
 type Attachment struct {
 	ID string `json:"id,omitempty"`
 	Title string `json:"title,omitempty"`
@@ -26,15 +28,15 @@ type AttachmentResults struct {
 }
 
 func (w *Wiki) getAttachmentByFilenameEndpoint(contentID string, filename string) (*url.URL, error) {
-	return url.ParseRequestURI(w.endPoint.String() + "/content/" + contentID + "/child/attachment?filename=" + filename)
+	return url.ParseRequestURI(fmt.Sprintf("%v/content/%v/child/attachment?filename=%v", w.endPoint.String(), contentID, filename))
 }
 
 func (w *Wiki) createAttachmentEndpoint(contentID string) (*url.URL, error) {
-	return url.ParseRequestURI(w.endPoint.String() + "/content/" + contentID + "/child/attachment")
+	return url.ParseRequestURI(fmt.Sprintf("%v/content/%v/child/attachment", w.endPoint.String(), contentID))
 }
 
 func (w *Wiki) updateAttachmentEndpoint(contentID string, attachmentID string) (*url.URL, error) {
-	return url.ParseRequestURI(w.endPoint.String() + "/content/" + contentID + "/child/attachment/" + attachmentID + "/data")
+	return url.ParseRequestURI(fmt.Sprintf("%v/content/%v/child/attachment/%v/data", w.endPoint.String(), contentID, attachmentID))
 }
 
 func (w *Wiki) GetAttachment(contentID string, filename string) (*AttachmentResults, error) {
@@ -68,12 +70,7 @@ func (w *Wiki) GetAttachmentData(contentID string, filename string) ([]byte, err
 		return nil, err
 	}
 
-	attachmentDataURL, err := url.ParseRequestURI(strings.Replace(w.endPoint.String(), "/rest/api", "", -1) + result.Results[0].Links.Download)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", attachmentDataURL.String(), nil)
+	req, err := http.NewRequest("GET", w.root.String() + result.Results[0].Links.Download, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +120,14 @@ func (w *Wiki) createOrUpdateAttachment(endpoint *url.URL, path string) (*Attach
 	}
 
 	req, err := http.NewRequest("POST", endpoint.String(), body)
-	req.Header.Add("X-Atlassian-Token", "nocheck")
 	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	// From https://docs.atlassian.com/ConfluenceServer/rest/latest/#api/content/{id}/child/attachment-createAttachments
+	//   In order to protect against XSRF attacks, because this method accepts multipart/form-data,
+	//   it has XSRF protection on it. This means you must submit a header of
+	//   X-Atlassian-Token: nocheck with the request, otherwise it will be blocked.
+	req.Header.Add("X-Atlassian-Token", "nocheck")
+
 	if err != nil {
 		return nil, err
 	}
