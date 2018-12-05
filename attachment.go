@@ -28,15 +28,15 @@ type AttachmentResults struct {
 }
 
 func (w *Wiki) getAttachmentByFilenameEndpoint(contentID string, filename string) (*url.URL, error) {
-	return url.ParseRequestURI(fmt.Sprintf("%v/content/%v/child/attachment?filename=%v", w.endPoint.String(), contentID, filename))
+	return url.ParseRequestURI(fmt.Sprintf("%s/content/%s/child/attachment?filename=%s", w.endPoint.String(), contentID, filename))
 }
 
 func (w *Wiki) createAttachmentEndpoint(contentID string) (*url.URL, error) {
-	return url.ParseRequestURI(fmt.Sprintf("%v/content/%v/child/attachment", w.endPoint.String(), contentID))
+	return url.ParseRequestURI(fmt.Sprintf("%s/content/%s/child/attachment", w.endPoint.String(), contentID))
 }
 
 func (w *Wiki) updateAttachmentEndpoint(contentID string, attachmentID string) (*url.URL, error) {
-	return url.ParseRequestURI(fmt.Sprintf("%v/content/%v/child/attachment/%v/data", w.endPoint.String(), contentID, attachmentID))
+	return url.ParseRequestURI(fmt.Sprintf("%s/content/%s/child/attachment/%s/data", w.endPoint.String(), contentID, attachmentID))
 }
 
 func (w *Wiki) GetAttachment(contentID string, filename string) (*AttachmentResults, error) {
@@ -114,6 +114,10 @@ func (w *Wiki) createOrUpdateAttachment(endpoint *url.URL, path string) (*Attach
 	}
 
 	_, err = io.Copy(part, file)
+	if err != nil {
+		return nil, err
+	}
+
 	err = writer.Close()
 	if err != nil {
 		return nil, err
