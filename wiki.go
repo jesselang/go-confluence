@@ -9,6 +9,7 @@ import (
 )
 
 type Wiki struct {
+	root       *url.URL
 	endPoint   *url.URL
 	authMethod AuthMethod
 	client     *http.Client
@@ -24,9 +25,17 @@ func NewWiki(location string, authMethod AuthMethod) (*Wiki, error) {
 		u.Path += "/"
 	}
 
+	root, err := url.ParseRequestURI(u.String())
+	if err != nil {
+		return nil, err
+	}
+	// Remove trailing "/"
+	root.Path = root.Path[:len(root.Path)-1]
+
 	u.Path += "rest/api"
 
 	wiki := new(Wiki)
+	wiki.root = root
 	wiki.endPoint = u
 	wiki.authMethod = authMethod
 
